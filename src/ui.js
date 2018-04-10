@@ -51,79 +51,36 @@ const createPieceShape = (() => {
   return (piece) => {
     const result = bitmapRule.get(piece.type).clone();
 
-    console.log(result.image.width);
-    console.log(result.image.height);
-
     result.piece    = piece;
     result.regY     = result.image.height / 2;
     result.regX     = result.image.width  / 2;
     result.rotation = rotationRule.get(piece.owner);
 
-    result.moveToBoard = (y, x) => {
-      result.y =  40 + y * 80;
-      result.x = 160 + x * 80;
-
-      result.scaleY = 60 / result.image.height;
-      result.scaleX = 60 / result.image.width;
+    const toBoardProps = (y, x) => {
+      return {y: 40 + y * 80, x: 160 + x * 80, scaleX: 60 / result.image.height, scaleY: 60 / result.image.width };
     };
 
-    result.animateToBoard = (y, x) => {
-      createjs.Tween.get(result).
-        to({y:       40 + y * 80,
-            x:      160 + x * 80,
-            scaleX: 60 / result.image.height,
-            scaleY: 60 / result.image.width},
-           1000,
-           createjs.Ease.cubicInOut);
-    };
+    result.moveToBoard = (y, x) => result.set(toBoardProps(y, x));
+    result.animateToBoard = (y, x) => createjs.Tween.get(result).to(toBoardProps(y, x), 1000, createjs.Ease.cubicInOut);
 
-    result.moveToCaptured = (player, index) => {
-      if (player == Player.black) {
-        result.y = 460 - (index % 7) * 40;
-        result.x = 620 - Math.floor(index / 7) * 40;
-      } else {
-        result.y =  20 + (index % 7) * 40;
-        result.x =  20 + Math.floor(index / 7) * 40;
-      }
-
-      result.scaleY = 30 / result.image.height;
-      result.scaleX = 30 / result.image.width;
-
-      result.rotation = rotationRule.get(player);
-    };
-
-    result.animateToCaptured = (player, index) => {
+    const toCapturedProps = (player, index) => {
       const [y, x] = (() => {
-        if (player == Player.black) {
-          return [460 - (index % 7) * 40,
-                  620 - Math.floor(index / 7) * 40];
-        } else {
-          return [ 20 + (index % 7) * 40,
-                   20 + Math.floor(index / 7) * 40];
+        switch (player) {
+        case Player.black: return [460 - (index % 7) * 40, 620 - Math.floor(index / 7) * 40];
+        case Player.white: return [ 20 + (index % 7) * 40,  20 + Math.floor(index / 7) * 40];
+        default:           throw('Illegal arguments.');
         }
       })();
 
-      createjs.Tween.get(result).
-        to({y:        y,
-            x:        x,
-            scaleY:   30 / result.image.height,
-            scaleX:   30 / result.image.width,
-            rotation: rotationRule.get(player)},
-           1000,
-           createjs.Ease.cubicInOut);
+      return {y: y, x: x, scaleY: 30 / result.image.height, scaleX: 30 / result.image.width, rotation: rotationRule.get(player)};
     };
+
+    result.moveToCaptured = (player, index) => result.set(toCapturedProps(player, index));
+    result.animateToCaptured = (player, index) => createjs.Tween.get(result).to(toCapturedProps(player, index), 1000, createjs.Ease.cubinInOut);
 
     return result;
   };
 })();
-
-const fromPosition = (position) => {
-  return [Math.floor(position / 7) - 1, (position % 7) - 1];
-};
-
-const toPosition = (y, x) => {
-  return (y + 1) * 7 + (x + 1);
-};
 
 export class UI {
   constructor() {
@@ -148,9 +105,8 @@ export class UI {
         const pieceShape = this.board[y][x];
 
         if (pieceShape) {
-          stage.addChild(pieceShape);
-
           pieceShape.moveToBoard(y, x);
+          stage.addChild(pieceShape);
         }
       }
     }
@@ -159,34 +115,43 @@ export class UI {
   async doMove(move) {
     const isEnemySide = (y) => this.player === Player.black ? y <= 1 : y >= 4;
 
+    const capture = (y, x) => {
+      const pieceShape = (() => {
+        const toPieceShape = this.board[y][x];
+        stage.removeChild(toPieceShape);
+
+        const promotedPiece = createPieceShape(getCapturedPiece(toPieceShape.piece));
+        promotedPiece.moveToBoard(y, x);
+        stage.addChild(promotedPiece);
+
+        return promotedPiece;
+      })();
+
+      pieceShape.animateToCaptured(this.player, this.capturedPieces.get(this.player).length);
+
+      this.board[y][x] = null;
+      this.capturedPieces.get(this.player).push(pieceShape);
+    };
+
     const moveFromBoard = (fromY, fromX, toY, toX) => {
       if (this.board[toY][toX]) {
-        const pieceShape = this.board[toY][toX];
-        stage.removeChild(pieceShape);
-
-        const capturedPieceShape = createPieceShape(getCapturedPiece(pieceShape.piece));
-        capturedPieceShape.moveToBoard(toY, toX);
-        stage.addChild(capturedPieceShape);
-
-        capturedPieceShape.animateToCaptured(this.player, this.capturedPieces.get(this.player).length);
-
-        this.capturedPieces.get(this.player).push(capturedPieceShape);
+        capture(toY, toX);
       }
 
       const pieceShape = (() => {
-        const result = this.board[fromY][fromX];
+        const fromPieceshape = this.board[fromY][fromX];
 
-        if (isEnemySide(toY) && result.piece !== getPromotedPiece(result.piece)) {
-          stage.removeChild(result);
+        if (isEnemySide(toY) && fromPieceshape.piece !== getPromotedPiece(fromPieceshape.piece)) {
+          stage.removeChild(fromPieceshape);
 
-          const promotedShape = createPieceShape(getPromotedPiece(result.piece));
-          promotedShape.moveToBoard(fromY, fromX);
-          stage.addChild(promotedShape);
+          const promotedPieceShape = createPieceShape(getPromotedPiece(fromPieceshape.piece));
+          promotedPieceShape.moveToBoard(fromY, fromX);
+          stage.addChild(promotedPieceShape);
 
-          return promotedShape;
+          return promotedPieceShape;
         }
 
-        return result;
+        return fromPieceshape;
       })();
 
       pieceShape.animateToBoard(toY, toX);
@@ -209,6 +174,8 @@ export class UI {
       this.board[toY][toX] = pieceShape;
     };
 
+    const fromPosition = (position) => [Math.floor(position / 7) - 1, (position % 7) - 1];
+
     if (!move) {
       return;
     }
@@ -219,9 +186,11 @@ export class UI {
       moveFromCaptured(move.fromCaptured, ...fromPosition(move.to));
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
+    // 次のプレイヤーに変更します。
     this.player = getNextPlayer(this.player);
+
+    // アニメーションの終了を待ちます。姑息なコードでごめんなさい……。
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
 

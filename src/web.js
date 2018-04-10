@@ -10,7 +10,9 @@ const ui = new UI();
   const socket = new WebSocket('ws://localhost:8080/');
 
   const winnerPromise = await (async function _(state) {
-    const lastMove = JSON.parse((await new Promise(resolve => socket.addEventListener('message', resolve, {once: true}))).data).lastMove;  // 状態は自前で管理するので、lastMove以外は捨てちゃいます。
+    const message = await new Promise(resolve => socket.addEventListener('message', resolve, {once: true}));
+
+    const lastMove = JSON.parse(message.data).lastMove;  // 状態は自前で管理するので、lastMove以外は捨てちゃいます。
 
     const lastState = state.doMove(lastMove);
     await ui.doMove(lastMove);
