@@ -17,12 +17,8 @@ const ui = new UI();
     const lastState = state.doMove(lastMove);
     await ui.doMove(lastMove);
 
-    await new Promise(resolve => {
-      document.getElementById('xxx').addEventListener('click', resolve, {once: true});
-    });
-
     const legalMoves = Array.from(lastState.getLegalMoves());
-    const move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    const move = await ui.getMove(legalMoves);
 
     const nextState = lastState.doMove(move);
     await ui.doMove(move);

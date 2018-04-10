@@ -1,7 +1,7 @@
 import 'babel-polyfill';
 
 import window_load_createjs from 'window_load_createjs';
-import {range} from 'folivora';
+import {apply, concat, filter, map, range, some} from 'folivora';
 import {Piece, PieceType, Player, getCapturedPiece, getNextPlayer, getPromotedPiece} from './game';
 
 const stage = (() => {
@@ -82,6 +82,8 @@ const createPieceShape = (() => {
   };
 })();
 
+const fromPosition = (position) => [Math.floor(position / 7) - 1, (position % 7) - 1];
+
 export class UI {
   constructor() {
     this.player = Player.black;
@@ -112,7 +114,117 @@ export class UI {
     }
   }
 
-  async doMove(move) {
+  getMove(legalMoves) {
+    const getLegalMovesFor = (pieceShape) => tCall(legalMoves,
+                                                   filter(move => {
+                                                     if (move.fromBoard !== null && move.fromBoard >= 0) {
+                                                       const [y, x] = fromPosition(move.fromBoard);
+
+                                                       return this.board[y][x] == pieceShape;
+                                                     } else {
+                                                       return this.capturedPieces.get(this.player)[move.fromCaptured] == pieceShape;
+                                                     }
+                                                   }));
+
+    const pieceShapes = Array.from(concat(filter(pieceShape => pieceShape && pieceShape.piece.owner == this.player, apply(concat)(this.board)),
+                                          this.capturedPieces.get(this.player)));
+
+    const highlightContainer = new createjs.Container();
+
+    const prepareHighlightContainer = (pieceShape) => {
+      highlightContainer.removeAllChildren();
+
+      for (const [y, x] of tCall(getLegalMovesFor(pieceShape), map(move => fromPosition(move.to)))) {
+        const shape = new createjs.Shape();
+
+        shape.graphics.beginFill('#8888ff');
+        shape.graphics.drawRect(-40, -40, 80, 80);
+        shape.graphics.endFill();
+        shape.alpha = 0.2;
+        shape.y =  40 + y * 80;
+        shape.x = 160 + x * 80;
+
+        highlightContainer.addChild(shape);
+      }
+    };
+
+    return new Promise(resolve => {
+      const pressmove = (event) => {
+        // 元の位置に戻せるように、座標を退避しておきます。
+        if (!event.target.originalY) {
+          event.target.originalY = event.target.y;
+          event.target.originalX = event.target.x;
+        }
+
+        // 移動可能な場所をハイライトさせます。
+        if (!stage.contains(highlightContainer)) {
+          prepareHighlightContainer(event.target);
+          stage.addChild(highlightContainer);
+        }
+
+        // 他の駒に隠されないようにするために、一番前に移動させます。
+        if (!stage.children[stage.children.length - 1] != event.target) {
+          stage.removeChild(event.target);
+          stage.addChild(event.target);
+        }
+
+        // 移動。
+        event.target.y = event.stageY;
+        event.target.x = event.stageX;
+      };
+
+      const pressup = (event) => {
+        // pressmoveを通っていない場合は無視します。
+        if (!event.target.originalY) {
+          return;
+        }
+
+        // 移動可能な場所のハイライトを消します。
+        stage.removeChild(highlightContainer);
+
+        // 位置を元に戻します。
+        event.target.y = event.target.originalY; delete event.target.originalY;
+        event.target.x = event.target.originalX; delete event.target.originalX;
+
+        // 移動可能な位置を選んだか、確認します。
+        const move = tCall(getLegalMovesFor(event.target),
+                           some((move) => {
+                             const [y, x] = fromPosition(move.to);
+
+                             const centerY =  40 + y * 80;
+                             const centerX = 160 + x * 80;
+
+                             if (event.stageY < centerY - 40 || event.stageY > centerY + 40 || event.stageX < centerX - 40 || event.stageX > centerX + 40) {
+                               return null;
+                             }
+
+                             return move;
+                           }));
+
+        // 移動可能でない場合は、やり直し。
+        if (!move) {
+          return;
+        }
+
+        // イベントを削除します。
+        for (const pieceShape of pieceShapes) {
+          pieceShape.removeEventListener('pressmove', pressmove);
+          pieceShape.removeEventListener('pressup',   pressup);
+        }
+
+        // リゾルブ！
+        resolve(move);
+      };
+
+      // イベントを登録します。
+      for (const pieceShape of pieceShapes) {
+        pieceShape.addEventListener('pressmove', pressmove);
+        pieceShape.addEventListener('pressup',   pressup);
+      }
+    });
+  }
+
+  doMove(move) {
     const isEnemySide = (y) => this.player === Player.black ? y <= 1 : y >= 4;
 
     const capture = (y, x) => {
@@ -174,10 +286,8 @@ export class UI {
       this.board[toY][toX] = pieceShape;
     };
 
-    const fromPosition = (position) => [Math.floor(position / 7) - 1, (position % 7) - 1];
-
     if (!move) {
-      return;
+      return null;
     }
 
     if (move.fromBoard && move.fromBoard >= 0) {
@@ -189,8 +299,8 @@ export class UI {
     // 次のプレイヤーに変更します。
     this.player = getNextPlayer(this.player);
 
-    // アニメーションの終了を待ちます。姑息なコードでごめんなさい……。
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // アニメーションの終了を待てるように、Promiseを返します。姑息なコードでごめんなさい……。
+    return new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
 
