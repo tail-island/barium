@@ -1,0 +1,51 @@
+{
+  "name": "barium",
+  "version": "1.0.0",
+  "description": "56 Animal Japanese Chess.",
+  "author": "OJIMA Ryoji",
+  "license": "EPL-1.0",
+  "private": true,
+  "engines": {
+    "node": ">= 6"
+  },
+  "babel": {
+    "presets": [
+      [
+        "env",
+        {
+          "targets": {
+            "node": 6
+          }
+        }
+      ]
+    ],
+    "plugins": [
+      "babel-plugin-folivora"
+    ]
+  },
+  "scripts": {
+    "test": "mocha --require babel-register test/**/*.js",
+    "server": "node -r babel-register src/server.js",
+    "sample": "node -r babel-register src/sample.js",
+    "webpack": "webpack"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-loader": "^7.1.4",
+    "babel-plugin-folivora": "file:../babel-plugin-folivora",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "mocha": "^5.0.5",
+    "url-loader": "^1.0.1",
+    "webpack": "^4.4.1",
+    "webpack-cli": "^2.0.13"
+  },
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "createjs": "^1.0.1",
+    "exports-loader": "^0.7.0",
+    "folivora": "file:../folivora",
+    "imports-loader": "^0.8.0",
+    "websocket": "^1.0.25"
+  }
+}
