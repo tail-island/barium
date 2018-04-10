@@ -1,5 +1,3 @@
-import 'babel-polyfill';
-
 import window_load_createjs from 'window_load_createjs';
 import {apply, concat, filter, map, range, some} from 'folivora';
 import {Piece, PieceType, Player, getCapturedPiece, getNextPlayer, getPromotedPiece} from './game';

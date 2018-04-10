@@ -1,6 +1,5 @@
 import 'babel-polyfill';
 
-import window_load_createjs from 'window_load_createjs';
 import {State} from './game';
 import {UI} from './ui';
 
