@@ -1,4 +1,4 @@
-import {filter, first} from 'folivora';
+import {count, filter, first} from 'folivora';
 import {Player, State, getNextPlayer} from './game';
 import * as http from 'http';
 import {server as WebSocketServer} from 'websocket';
@@ -18,31 +18,57 @@ import {server as WebSocketServer} from 'websocket';
   const connections = new Map([[Player.black, await new Promise(resolve => server.once('connect', resolve))],    // awaitが必要なので、重複を許してください……。async function*は、なんかエラーになっちゃった。
                                [Player.white, await new Promise(resolve => server.once('connect', resolve))]]);  // どう書けばいいんだろ？ KotlihのsuspendCoroutineは使い勝手が良かったなぁ……。
 
-  // TODO: 千日手を引き分けにする処理を追加する！
+  // 千日手判定用の、過去の状態を表現する変数。
+  const pastStates = [];
 
   // メッセージをやり取りしてゲームを進める関数を定義して、実行します。
-  const winnerPromise = await (async function _(state, lastMove) {
+  const winner = await (async function _(state, lastMove) {
+    // とりあえず、盤面をコンソールに表示します。
     console.log(state.toString());
 
+    // 勝敗が決した場合は、勝者をリターンします。
     if (state.winner) {
       return state.winner;
     }
 
+    // 千日手判定用に、状態を追加します。
+    pastStates.push(state);
+
+    // 合法手を取得します。
     const legalMoves = Array.from(state.getLegalMoves());
+
+    // 状態、合法手、敵が打った手をプレイヤーに送信します。
     connections.get(state.player).sendUTF(JSON.stringify({state: state, legalMoves: legalMoves, lastMove: lastMove}));
 
+    // プレイヤーが選択した手を取得します。
     const moveCandidate = JSON.parse((await new Promise(resolve => connections.get(state.player).once('message', resolve))).utf8Data);
-    const move = first(filter(legalMove => legalMove.equals(moveCandidate), legalMoves));
 
+    // 合法手かチェックします。
+    const move = first(filter(legalMove => legalMove.equals(moveCandidate), legalMoves));
     if (!move) {
       return getNextPlayer(state.player);
     }
 
-    return await _(state.doMove(move), move);
+    // 手を実行して状態を進めます。
+    const nextState = state.doMove(move);
+
+    // 千日手（同一局面が3回）は、引き分けとします。
+    if (count(filter(pastState => pastState.equals(nextState), pastStates)) >= 3) {
+      return null;
+    }
+
+    // 再帰呼び出しして、ゲームを続けます。
+    return await _(nextState, move);
   })(new State(), null);
 
-  // 勝者を表示します。
-  console.log(`${ await winnerPromise == Player.black ? '先手' : '後手' }の勝ち！`);
+  // 結果を表示します。
+  console.log((() => {
+    if (!winner) {
+      return '引き分け';
+    } else {
+      return `${ winner == Player.black ? '先手' : '後手' }の勝ち！`;
+    }
+  })());
 
   // サーバーを終了させます。
   server.shutDown();

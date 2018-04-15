@@ -13,7 +13,7 @@ const ui = new UI();
 
     const lastMove = JSON.parse(message.data).lastMove;  // 状態は自前で管理するので、lastMove以外は捨てちゃいます。
 
-    const lastState = state.doMove(lastMove);
+    const lastState = lastMove ? state.doMove(lastMove) : state;
     await ui.doMove(lastMove);
 
     const legalMoves = Array.from(lastState.getLegalMoves());

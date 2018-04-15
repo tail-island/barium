@@ -167,6 +167,7 @@ export class State {
     this.winner              = winner;
   }
 
+  // 合法手を取得します。
   getLegalMoves() {
     // 「打ちひよこ詰め」か確認します。「ごろごろどうぶつしょうぎ」には遠くへ移動できる駒がないので、こんな感じで判定できるはず……。
     const isDropChickMate = (chickPosition, chickPiece) => {
@@ -255,22 +256,22 @@ export class State {
     // 「ごろごろどうぶつしょうぎ」では、「玉を取られる着手」と「連続王手の千日手」は禁手ではないみたい。
   }
 
+  // 手を実行して、その結果の状態を返します。getLegalMovesの中の手で呼び出されるはずなので、エラー・チェックはしません。
   doMove(move) {
+    // 敵陣かどうかを判断する関数です。
     const isEnemySide = (position) => {
       const y = Math.floor(position / 7);
 
       return this.player === Player.black ? y <= 2 : y >= 5;
     };
 
-    if (!move) {
-      return this;
-    }
-
+    // 手の実行で変更になる状態をコピーします。
     const nextPlayer         = getNextPlayer(this.player);
     const nextBoard          = Array.from(this.board);
     const nextCapturedPieces = Array.from(this.capturedPieces);
 
-    if (move.fromBoard !== null && move.fromBoard >= 0) {
+    // 手を実行します。
+    if (move.fromBoard) {  // 盤面の駒を動かす手の場合。
       if (this.board[move.to] !== vacant) {
         nextCapturedPieces.push(getCapturedPiece(this.board[move.to]));
         nextCapturedPieces.sort((piece1, piece2) => piece1.type - piece2.type);
@@ -278,11 +279,12 @@ export class State {
 
       nextBoard[move.to] = isEnemySide(move.to) ? getPromotedPiece(nextBoard[move.fromBoard]) : nextBoard[move.fromBoard];
       nextBoard[move.fromBoard] = vacant;
-    } else {
+    } else {               // 手駒を打つ手の場合。
       nextBoard[move.to] = nextCapturedPieces[move.fromCaptured];
       nextCapturedPieces.splice(move.fromCaptured, 1);
     }
 
+    // 新しい状態を生成して返します。
     return new State(
       nextPlayer,
       nextBoard,

@@ -289,17 +289,12 @@ export class UI {
       this.board[toY][toX] = pieceShape;
     };
 
-    if (!move) {
-      return null;
-    }
-
-    if (move.fromBoard && move.fromBoard >= 0) {
+    if (move.fromBoard) {
       moveFromBoard(...fromPosition(move.fromBoard), ...fromPosition(move.to));
     } else {
       moveFromCaptured(move.fromCaptured, ...fromPosition(move.to));
     }
 
-    // 次のプレイヤーに変更します。
     this.player = getNextPlayer(this.player);
 
     // アニメーションの終了を待てるように、Promiseを返します。姑息なコードでごめんなさい……。
