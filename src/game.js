@@ -227,7 +227,7 @@ export class State {
       tCall(this.capturedPieces,
             keepIndexed((from, piece) => tCall(this.board,
                                                keepIndexed((to, toPiece) => {
-                                                 if (toPiece.owner) {
+                                                 if (toPiece !== vacant) {
                                                    return null;
                                                  }
 

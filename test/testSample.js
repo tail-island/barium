@@ -18,4 +18,4 @@ const xxx = getMove(new State(
   null
 ));
 
-console.log(xxx);
+console.log('getMove result', xxx);

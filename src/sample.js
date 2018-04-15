@@ -1,19 +1,6 @@
-import {first, isEmpty, reduce, reduced} from 'folivora';
+import {isEmpty, reduce, reduced} from 'folivora';
 import {PieceType, State, vacant, wall} from './game';
 import {client as WebSocketClient} from 'websocket';
-
-// 駒の価値を計算する関数。
-const getPieceValue = (piece) => {
-  switch (piece.type) {
-  case PieceType.chick:      return    100;
-  case PieceType.chicken:    return   1200;
-  case PieceType.cat:        return   1000;
-  case PieceType.powerUpCat: return   1200;
-  case PieceType.dog:        return   1200;
-  case PieceType.lion:       return 100000;
-  default:                   throw('Illegal argument.');
-  };
-};
 
 // いわゆる評価関数です。
 const evaluate = (() => {
@@ -29,41 +16,65 @@ const evaluate = (() => {
   ]);
 
   return (state) => {
-    return (reduce((acc, piece) => acc + (piece !== vacant && piece !== wall ? rule.get(piece.type) * (piece.owner == state.player ? 1 : -1) : 0), 0, state.board) +
+    return (reduce((acc, piece) => acc + (piece !== vacant && piece !== wall ? rule.get(piece.type) * (piece.owner === state.player ? 1 : -1) : 0), 0, state.board) +
             reduce((acc, piece) => acc + rule.get(piece.type), 0, state.capturedPieces) +
             reduce((acc, piece) => acc - rule.get(piece.type), 0, state.enemyCapturedPieces));
   };
 })();
 
-// TODO: 二層目からはmoveを使わないようにする。
-// TODO: メモ化！
-export const getMove = (state) => {
+// 次の手を選びます。
+export const getMove = (() => {
   const getScore = (state, depth, alpha, beta) => {
+    const hashcode = state.hashcode();
+    const memo = memos.get(hashcode);  // ハッシュ値がたまたま等しい異なる状態の場合は不正な動作になりますけど、気にしない方向で……。HashMap欲しいなぁ……。
+
+    if (memo && memo.depth >= depth && memo.alpha <= alpha && memo.beta >= beta) {
+      return memo.score;
+    }
+
     if (state.winner) {
       return state.winner === state.player ? 100000 : -100000;
     }
 
-    if (depth === 0 || isEmpty(state.getLegalMoves())) {
+    const legalMoves = Array.from(state.getLegalMoves());
+
+    if (depth === 0 || isEmpty(legalMoves)) {
       return evaluate(state);
     }
 
-    return first(getScoreAndMove(state, depth, alpha, beta));
+    const score = reduce((acc, move) => {
+      const score = -getScore(state.doMove(move), depth - 1, -beta, -acc);
+
+      if (score > acc) {
+        acc = score;
+      }
+
+      return acc >= beta ? reduced(acc) : acc;
+    }, alpha, legalMoves);
+
+    memos.set(hashcode, {state: state, depth: depth, alpha: alpha, beta: beta, score: score});
+
+    return score;
   };
 
-  const getScoreAndMove = (state, depth, alpha, beta) => {
-    return reduce((acc, move) => {
-      const score = -getScore(state.doMove(move), depth - 1, -beta, -acc[0]);
+  const memos = new Map();
+
+  return (state) => {
+    const [score, move] = reduce((acc, move) => {
+      const score = -getScore(state.doMove(move), 3, -Infinity, -acc[0]);
 
       if (score > acc[0]) {
         acc = [score, move];
       }
 
-      return acc[0] >= beta ? reduced(acc) : acc;
-    }, [alpha, null], state.getLegalMoves());
-  };
+      return acc;
+    }, [-Infinity, null], state.getLegalMoves());
 
-  return getScoreAndMove(state, 5, -Infinity, Infinity)[1];
-};
+    console.log(score);
+
+    return move;
+  };
+})();
 
 (async () => {
   const client = new WebSocketClient();
