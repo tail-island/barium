@@ -22,7 +22,7 @@ export const Direction = (() => {
 // プレイヤー。
 export const Player = {
   black: 1,
-  white: 2,
+  white: 2
 };
 
 // 次のプレイヤーを取得します。
@@ -35,7 +35,7 @@ export const PieceType = {
   cat:        3,
   powerUpCat: 4,
   dog:        5,
-  lion:       6,
+  lion:       6
 };
 
 // 駒。
@@ -273,6 +273,7 @@ export class State {
     if (move.fromBoard !== null && move.fromBoard >= 0) {
       if (this.board[move.to] !== vacant) {
         nextCapturedPieces.push(getCapturedPiece(this.board[move.to]));
+        nextCapturedPieces.sort((piece1, piece2) => piece1.type - piece2.type);
       }
 
       nextBoard[move.to] = isEnemySide(move.to) ? getPromotedPiece(nextBoard[move.fromBoard]) : nextBoard[move.fromBoard];
@@ -299,7 +300,7 @@ export class State {
   }
 
   hashcode() {
-    const piecesToInts = (pieces) => mapcat(piece => piece ? [piece.owner, piece.type] : [0, 0], pieces);
+    const piecesToInts = (pieces) => mapcat(piece => [piece.owner, piece.type], pieces);
 
     return fnv1a(this.player, ...concat(piecesToInts(this.board), piecesToInts(this.capturedPieces), piecesToInts(this.enemyCapturedPieces)));
   }

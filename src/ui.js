@@ -226,6 +226,8 @@ export class UI {
     const isEnemySide = (y) => this.player === Player.black ? y <= 1 : y >= 4;
 
     const capture = (y, x) => {
+      const capturedPieces = this.capturedPieces.get(this.player);
+
       const pieceShape = (() => {
         const toPieceShape = this.board[y][x];
         stage.removeChild(toPieceShape);
@@ -237,10 +239,13 @@ export class UI {
         return promotedPiece;
       })();
 
-      pieceShape.animateToCaptured(this.player, this.capturedPieces.get(this.player).length);
-
       this.board[y][x] = null;
-      this.capturedPieces.get(this.player).push(pieceShape);
+      capturedPieces.push(pieceShape);
+      capturedPieces.sort((pieceShape1, pieceShape2) => pieceShape1.piece.type - pieceShape2.piece.type);
+
+      for (const i of range(capturedPieces.length)) {
+        capturedPieces[i].animateToCaptured(this.player, i);
+      }
     };
 
     const moveFromBoard = (fromY, fromX, toY, toX) => {

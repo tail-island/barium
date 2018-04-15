@@ -6,12 +6,12 @@ import {server as WebSocketServer} from 'websocket';
 // ごめんなさい。とりあえず、エラー処理とセキュリティーは丸ごと無視で……。
 
 (async () => {
-  const httpServer = http.createServer().listen(8080);
-
   // サーバーを作成します。
+  const httpServer = http.createServer().listen(8080);
   const server = new WebSocketServer({
-    httpServer: httpServer,
-    autoAcceptConnections: true
+    autoAcceptConnections: true,
+    httpServer:            httpServer,
+    keepalive:             false
   });
 
   // コネクションを2つ取得します。
@@ -42,9 +42,9 @@ import {server as WebSocketServer} from 'websocket';
   })(new State(), null);
 
   // 勝者を表示します。
-  console.log(`${ await winnerPromise == Player.black ? '先手' : '後手' } won!`);
+  console.log(`${ await winnerPromise == Player.black ? '先手' : '後手' }の勝ち！`);
 
-  // 終了。
+  // サーバーを終了させます。
   server.shutDown();
   httpServer.close();
 })();
