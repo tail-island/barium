@@ -15,11 +15,9 @@ const evaluate = (() => {
     [PieceType.lion,       10000]
   ]);
 
-  return (state) => {
-    return (reduce((acc, piece) => acc + (piece !== vacant && piece !== wall ? rule.get(piece.type) * (piece.owner === state.player ? 1 : -1) : 0), 0, state.board) +
-            reduce((acc, piece) => acc + rule.get(piece.type), 0, state.capturedPieces) +
-            reduce((acc, piece) => acc - rule.get(piece.type), 0, state.enemyCapturedPieces));
-  };
+  return (state) => (reduce((acc, piece) => acc + (piece !== vacant && piece !== wall ? rule.get(piece.type) * (piece.owner === state.player ? 1 : -1) : 0), 0, state.board) +
+                     reduce((acc, piece) => acc + rule.get(piece.type), 0, state.capturedPieces) +
+                     reduce((acc, piece) => acc - rule.get(piece.type), 0, state.enemyCapturedPieces));
 })();
 
 // 次の手を選びます。
