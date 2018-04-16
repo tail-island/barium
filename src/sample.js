@@ -2,9 +2,9 @@ import {reduce, reduced} from 'folivora';
 import {PieceType, State, vacant, wall} from './game';
 import {client as WebSocketClient} from 'websocket';
 
-// いわゆる評価関数です。
+// 状態を評価します。
 const evaluate = (() => {
-  // とりあえず、駒得で作ってみました……。ヘッポコです。
+  // とりあえず、駒得で作ってみました……。ごめんなさい。ヘッポコです。
 
   const rule = new Map([
     [PieceType.chick,        100],
@@ -20,7 +20,7 @@ const evaluate = (() => {
                      reduce((acc, piece) => acc - rule.get(piece.type), 0, state.enemyCapturedPieces));
 })();
 
-// 次の手を選びます。
+// 次の手を取得します。
 export const getMove = (() => {
   // アルファ・ベータ法（正しくはネガ・アルファ法）で、盤面のスコアを計算します。
   const getScore = (state, depth, alpha, beta) => {
@@ -40,12 +40,10 @@ export const getMove = (() => {
     // 合法手を取得します。
     const legalMoves = Array.from(state.getLegalMoves());
 
-    // 十分深く探索した、もしくは、合法手がない場合は、盤面を評価してスコアとします。
+    // 指定した深さまで探索した、もしくは、合法手がない場合は、盤面を評価してスコアとします。
     if (depth === 1 || legalMoves.length === 0) {  // 外側で余分に一回回しているので、depth === 0じゃなくて1にしました。
       return evaluate(state);
     }
-
-    // TODO: すべての手で軽くスコアを調べて、スコアが大きい順にソートして、枝刈りの効果を高める。
 
     // そうでなければ、合法手を使って1手進めた盤面で自分自身を呼び出して、スコアを計算します。
     const score = reduce((acc, move) => {
@@ -68,11 +66,11 @@ export const getMove = (() => {
   // 手を返せるように、スコアと手の配列をaccにするアルファ・ベータ法（正しくはネガ・アルファ法）を実行します。getScoreを手も扱うように改造すればコードの重複がなくなるのですけど、配列の生成は遅そうなので、敢えてこんなコードにしてみました。
   return (state) => {
     const [score, move] = reduce((acc, move) => {
-      const score = -getScore(state.doMove(move), 4, -1000000, -acc[0]);
+      const score = -getScore(state.doMove(move), 4, -1000000, -acc[0]);  // 5手読むとすげー遅かったので、読む深さは4手で。
       const nextAcc = score > acc[0] ? [score, move] : acc;  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
 
       return nextAcc;
-    }, [-1000000, null], state.getLegalMoves());  // TODO: 合法手が全く無い場合にnullが返るけど、大丈夫？
+    }, [-1000000, null], state.getLegalMoves());  // TODO: 合法手が全く無い場合にnullが返るけど、大丈夫？　合法手が全くない状態が想像できないけど……。
 
     console.log(score);
 

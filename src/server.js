@@ -38,7 +38,7 @@ import {server as WebSocketServer} from 'websocket';
     // 合法手を取得します。
     const legalMoves = Array.from(state.getLegalMoves());
 
-    console.time('AI using');
+    console.time('Player using');
 
     // 状態、合法手、敵が打った手をプレイヤーに送信します。
     connections.get(state.player).sendUTF(JSON.stringify({state: state, legalMoves: legalMoves, lastMove: lastMove}));
@@ -46,7 +46,7 @@ import {server as WebSocketServer} from 'websocket';
     // プレイヤーが選択した手を取得します。
     const moveCandidate = JSON.parse((await new Promise(resolve => connections.get(state.player).once('message', resolve))).utf8Data);
 
-    console.timeEnd('AI using');
+    console.timeEnd('Player using');
 
     // 合法手かチェックします。
     const move = first(filter(legalMove => legalMove.equals(moveCandidate), legalMoves));
