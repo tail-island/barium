@@ -167,49 +167,49 @@ export class State {
     this.winner              = winner;
   }
 
+  // 「打ちひよこ詰め」か確認します。「ごろごろどうぶつしょうぎ」には遠くへ移動できる駒がないので、こんな感じで判定できるはず……。
+  isDropChickMate(chickPosition, chickPiece) {
+    const nextPosition = chickPosition + getMoveDirections(chickPiece)[0];
+    const nextPiece = this.board[nextPosition];
+
+    // 頭が敵の玉でなければ、「打ちひよこ詰め」ではありません。
+    if (nextPiece.type !== PieceType.lion && nextPiece.owner !== getNextPlayer(this.player)) {
+      return false;
+    }
+
+    // 敵のライオンに安全な移動先があるなら、「打ちひよこ詰め」ではないはず。
+    if (tCall(map(direction => nextPosition + direction, getMoveDirections(nextPiece)),
+              some(position => {
+                const piece = this.board[position];
+
+                return (piece === vacant || piece.owner === this.player) && !tCall(map(direction => position + direction, Direction.directions),
+                                                                                   some(aroundPosition => {
+                                                                                     const aroundPiece = this.board[aroundPosition];
+
+                                                                                     return aroundPiece.owner === this.player && some(direction => aroundPosition + direction === position, getMoveDirections(aroundPiece));
+                                                                                   }));
+              })))
+    {
+      return false;
+    }
+
+    // ひよこの周囲にある、敵のライオン以外の駒でひよこを取れるなら、「打ちひよこ詰め」ではないはず（王手を敵が無視して、さらに、玉を取らずに打ち歩する場合は別だけど、無視で）。
+    if (tCall(map(direction => chickPosition + direction, Direction.directions),
+              some(position => {
+                const piece = this.board[position];
+
+                return piece.owner === getNextPlayer(this.player) && piece.type !== PieceType.lion && some(direction => position + direction === chickPosition, getMoveDirections(piece));
+              })))
+    {
+      return false;
+    }
+
+    // そうでなければ、「打ちひよこ詰め」のはず。
+    return true;
+  }
+
   // 合法手を取得します。
   getLegalMoves() {
-    // 「打ちひよこ詰め」か確認します。「ごろごろどうぶつしょうぎ」には遠くへ移動できる駒がないので、こんな感じで判定できるはず……。
-    const isDropChickMate = (chickPosition, chickPiece) => {
-      const nextPosition = chickPosition + getMoveDirections(chickPiece)[0];
-      const nextPiece = this.board[nextPosition];
-
-      // 頭が敵の玉でなければ、「打ちひよこ詰め」ではありません。
-      if (nextPiece.type !== PieceType.lion && nextPiece.owner !== getNextPlayer(this.player)) {
-        return false;
-      }
-
-      // 敵のライオンに安全な移動先があるなら、「打ちひよこ詰め」ではないはず。
-      if (tCall(map(direction => nextPosition + direction, getMoveDirections(nextPiece)),
-                some(position => {
-                  const piece = this.board[position];
-
-                  return (piece === vacant || piece.owner === this.player) && !tCall(map(direction => position + direction, Direction.directions),
-                                                                                     some(aroundPosition => {
-                                                                                       const aroundPiece = this.board[aroundPosition];
-
-                                                                                       return aroundPiece.owner === this.player && some(direction => aroundPosition + direction === position, getMoveDirections(aroundPiece));
-                                                                                     }));
-                })))
-      {
-        return false;
-      }
-
-      // ひよこの周囲にある、敵のライオン以外の駒でひよこを取れるなら、「打ちひよこ詰め」ではないはず（王手を敵が無視して、さらに、玉を取らずに打ち歩する場合は別だけど、無視で）。
-      if (tCall(map(direction => chickPosition + direction, Direction.directions),
-                some(position => {
-                  const piece = this.board[position];
-
-                  return piece.owner === getNextPlayer(this.player) && piece.type !== PieceType.lion && some(direction => position + direction === chickPosition, getMoveDirections(piece));
-                })))
-      {
-        return false;
-      }
-
-      // そうでなければ、「打ちひよこ詰め」のはず。
-      return true;
-    };
-
     return concat(
       // 駒を移動する手。
       tCall(this.board,
@@ -244,7 +244,7 @@ export class State {
                                                    }
 
                                                    // 「打ちひよこ詰め」は禁手。
-                                                   if (isDropChickMate(to, piece)) {
+                                                   if (this.isDropChickMate(to, piece)) {
                                                      return null;
                                                    }
                                                  }
@@ -256,15 +256,15 @@ export class State {
     // 「ごろごろどうぶつしょうぎ」では、「玉を取られる着手」と「連続王手の千日手」は禁手ではないみたい。
   }
 
+  // 敵陣かどうかを判断します。
+  isEnemySide(position) {
+    const y = Math.floor(position / 7);
+
+    return this.player === Player.black ? y <= 2 : y >= 5;
+  }
+
   // 手を実行して、その結果の状態を返します。getLegalMovesの中の手で呼び出されるはずなので、エラー・チェックはしません。
   doMove(move) {
-    // 敵陣かどうかを判断する関数です。
-    const isEnemySide = (position) => {
-      const y = Math.floor(position / 7);
-
-      return this.player === Player.black ? y <= 2 : y >= 5;
-    };
-
     // 手の実行で変更になる状態をコピーします。
     const nextPlayer         = getNextPlayer(this.player);
     const nextBoard          = Array.from(this.board);
@@ -277,7 +277,7 @@ export class State {
         nextCapturedPieces.sort((piece1, piece2) => piece1.type - piece2.type);
       }
 
-      nextBoard[move.to] = isEnemySide(move.to) ? getPromotedPiece(nextBoard[move.fromBoard]) : nextBoard[move.fromBoard];
+      nextBoard[move.to] = this.isEnemySide(move.to) ? getPromotedPiece(nextBoard[move.fromBoard]) : nextBoard[move.fromBoard];
       nextBoard[move.fromBoard] = vacant;
     } else {               // 手駒を打つ手の場合。
       nextBoard[move.to] = nextCapturedPieces[move.fromCaptured];
@@ -304,7 +304,7 @@ export class State {
   hashcode() {
     const piecesToInts = (pieces) => mapcat(piece => [piece.owner, piece.type], pieces);
 
-    return fnv1a(this.player, ...concat(piecesToInts(this.board), piecesToInts(this.capturedPieces), piecesToInts(this.enemyCapturedPieces)));
+    return fnv1a(concat([this.player], piecesToInts(this.board), piecesToInts(this.capturedPieces), piecesToInts(this.enemyCapturedPieces)));
   }
 }
 

@@ -1,4 +1,4 @@
-import {isEmpty, reduce, reduced} from 'folivora';
+import {reduce, reduced} from 'folivora';
 import {PieceType, State, vacant, wall} from './game';
 import {client as WebSocketClient} from 'websocket';
 
@@ -24,14 +24,15 @@ const evaluate = (() => {
 export const getMove = (() => {
   // アルファ・ベータ法（正しくはネガ・アルファ法）で、盤面のスコアを計算します。
   const getScore = (state, depth, alpha, beta) => {
-    // 過去に同じ盤面のスコアを計算していた場合は、その値をそのまま返します。ハッシュ値がたまたま等しい異なる状態の場合は不正な動作になりますけど、気にしない方向で……。HashMap欲しいなぁ……。
     const hashcode = state.hashcode();
     const memo = memos.get(hashcode);
+
+    // 過去に同じ盤面のスコアを計算していた場合は、その値をそのまま返します。ハッシュ値がたまたま等しい異なる状態の場合は不正な動作になりますけど、気にしない方向で。HashMap欲しいなぁ……。
     if (memo && memo.depth >= depth && memo.alpha <= alpha && memo.beta >= beta) {
       return memo.score;
     }
 
-    // 勝者が確定している場合は、大きな値を返します。
+    // 勝者が確定している場合は、探索を止めて大きな値を返します。
     if (state.winner) {
       return state.winner === state.player ? 100000 : -100000;
     }
@@ -39,23 +40,22 @@ export const getMove = (() => {
     // 合法手を取得します。
     const legalMoves = Array.from(state.getLegalMoves());
 
-    // 十分深く探索したか、合法手がない場合は、盤面を評価してスコアとします。
-    if (depth === 0 || isEmpty(legalMoves)) {
+    // 十分深く探索した、もしくは、合法手がない場合は、盤面を評価してスコアとします。
+    if (depth === 1 || legalMoves.length === 0) {  // 外側で余分に一回回しているので、depth === 0じゃなくて1にしました。
       return evaluate(state);
     }
+
+    // TODO: すべての手で軽くスコアを調べて、スコアが大きい順にソートして、枝刈りの効果を高める。
 
     // そうでなければ、合法手を使って1手進めた盤面で自分自身を呼び出して、スコアを計算します。
     const score = reduce((acc, move) => {
       const score = -getScore(state.doMove(move), depth - 1, -beta, -acc);
+      const nextAcc = score > acc ? score : acc;  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
 
-      if (score > acc) {  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
-        acc = score;
-      }
-
-      return acc >= beta ? reduced(acc) : acc;
+      return nextAcc >= beta ? reduced(nextAcc) : nextAcc;
     }, alpha, legalMoves);
 
-    // 再利用できるように、計算したスコアを保存しておきます。
+    // 計算したスコアをメモしておきます。
     memos.set(hashcode, {state: state, depth: depth, alpha: alpha, beta: beta, score: score});
 
     // スコアをリターンします。
@@ -68,14 +68,11 @@ export const getMove = (() => {
   // 手を返せるように、スコアと手の配列をaccにするアルファ・ベータ法（正しくはネガ・アルファ法）を実行します。getScoreを手も扱うように改造すればコードの重複がなくなるのですけど、配列の生成は遅そうなので、敢えてこんなコードにしてみました。
   return (state) => {
     const [score, move] = reduce((acc, move) => {
-      const score = -getScore(state.doMove(move), 3, -Infinity, -acc[0]);
+      const score = -getScore(state.doMove(move), 4, -1000000, -acc[0]);
+      const nextAcc = score > acc[0] ? [score, move] : acc;  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
 
-      if (score > acc[0]) {  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
-        acc = [score, move];
-      }
-
-      return acc;
-    }, [-Infinity, null], state.getLegalMoves());
+      return nextAcc;
+    }, [-1000000, null], state.getLegalMoves());  // TODO: 合法手が全く無い場合にnullが返るけど、大丈夫？
 
     console.log(score);
 

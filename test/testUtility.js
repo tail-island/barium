@@ -15,10 +15,10 @@ describe('test isEqualArray', () => {
 
 describe('test fnv1a', () => {
   it('from one value', () => {
-    assert.equal(fnv1a(0x11222344), 3138057805);  // 正解はC++で計算して出しました。
+    assert.equal(fnv1a([0x11222344]), 3138057805);  // 正解はC++で計算して出しました。
   });
 
   it('from two values', () => {
-    assert.equal(fnv1a(0x11222344, 0x55667788), 217018493);
+    assert.equal(fnv1a([0x11222344, 0x55667788]), 217018493);
   });
 });
