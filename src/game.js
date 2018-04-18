@@ -172,8 +172,8 @@ export class State {
     const nextPosition = chickPosition + getMoveDirections(chickPiece)[0];
     const nextPiece = this.board[nextPosition];
 
-    // 頭が敵の玉でなければ、「打ちひよこ詰め」ではありません。
-    if (nextPiece.type !== PieceType.lion && nextPiece.owner !== getNextPlayer(this.player)) {
+    // 頭が敵のライオンでなければ、「打ちひよこ詰め」ではありません。
+    if (nextPiece.type !== PieceType.lion || nextPiece.owner !== getNextPlayer(this.player)) {
       return false;
     }
 
@@ -193,12 +193,12 @@ export class State {
       return false;
     }
 
-    // ひよこの周囲にある、敵のライオン以外の駒でひよこを取れるなら、「打ちひよこ詰め」ではないはず（王手を敵が無視して、さらに、玉を取らずに打ち歩する場合は別だけど、無視で）。
-    if (tCall(map(direction => chickPosition + direction, Direction.directions),
+    // ひよこ（現在はライオンがある位置）の周囲にある駒でひよこを取れるなら、「打ちひよこ詰め」ではないはず（王手を敵が無視して、さらに、玉を取らずに打ち歩する場合は別だけど、無視で）。
+    if (tCall(map(direction => nextPosition + direction, Direction.directions),
               some(position => {
                 const piece = this.board[position];
 
-                return piece.owner === getNextPlayer(this.player) && piece.type !== PieceType.lion && some(direction => position + direction === chickPosition, getMoveDirections(piece));
+                return piece.owner === getNextPlayer(this.player) && some(direction => position + direction === chickPosition, getMoveDirections(piece));
               })))
     {
       return false;
