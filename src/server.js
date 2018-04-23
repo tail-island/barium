@@ -48,6 +48,8 @@ import {server as WebSocketServer} from 'websocket';
 
     console.timeEnd('Player using');
 
+    console.log('move:', moveCandidate);
+
     // 合法手かチェックします。
     const move = first(filter(legalMove => legalMove.equals(moveCandidate), legalMoves));
     if (!move) {

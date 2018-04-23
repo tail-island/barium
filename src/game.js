@@ -124,7 +124,15 @@ export class Move {
   }
 
   equals(other) {
-    return this.fromBoard === other.fromBoard && this.fromCaptured === other.fromCaptured && this.to === other.to;
+    if (this.fromBoard) {
+      return this.fromBoard == other.fromBoard && this.to == other.to;
+    }
+
+    if (this.fromCaptured >= 0) {
+      return this.fromCaptured == other.fromCaptured && this.to == other.to;
+    }
+
+    return false;
   }
 }
 

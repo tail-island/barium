@@ -12,9 +12,11 @@ const ui = new UI();
     const message = await new Promise(resolve => socket.addEventListener('message', resolve, {once: true}));
 
     const lastMove = JSON.parse(message.data).lastMove;  // 状態は自前で管理するので、lastMove以外は捨てちゃいます。
-
     const lastState = lastMove ? state.doMove(lastMove) : state;
-    await ui.doMove(lastMove);
+
+    if (lastMove) {
+      await ui.doMove(lastMove);
+    }
 
     const legalMoves = Array.from(lastState.getLegalMoves());
     const move = await ui.getMove(legalMoves);
