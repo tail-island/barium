@@ -35,18 +35,26 @@ import {server as WebSocketServer} from 'websocket';
     // 千日手判定用に、状態を追加します。
     pastStates.push(state);
 
+    // 千日手（同一局面が3回）は、引き分けとします。
+    if (count(filter(pastState => pastState.equals(state), pastStates)) >= 3) {
+      return null;
+    }
+
     // 合法手を取得します。
     const legalMoves = Array.from(state.getLegalMoves());
-
-    console.time('Player using');
 
     // 状態、合法手、敵が打った手をプレイヤーに送信します。
     connections.get(state.player).sendUTF(JSON.stringify({state: state, legalMoves: legalMoves, lastMove: lastMove}));
 
-    // プレイヤーが選択した手を取得します。
-    const moveCandidate = JSON.parse((await new Promise(resolve => connections.get(state.player).once('message', resolve))).utf8Data);
+    console.time('Player using');
+
+    // プレイヤーの応答を受信します。
+    const message = await new Promise(resolve => connections.get(state.player).once('message', resolve));
 
     console.timeEnd('Player using');
+
+    // プレイヤーが選択した手を取得します。
+    const moveCandidate = JSON.parse(message.utf8Data);
 
     console.log('move:', moveCandidate);
 
@@ -56,16 +64,8 @@ import {server as WebSocketServer} from 'websocket';
       return getNextPlayer(state.player);
     }
 
-    // 手を実行して状態を進めます。
-    const nextState = state.doMove(move);
-
-    // 千日手（同一局面が3回）は、引き分けとします。
-    if (count(filter(pastState => pastState.equals(nextState), pastStates)) >= 3) {
-      return null;
-    }
-
-    // 再帰呼び出しして、ゲームを続けます。
-    return await _(nextState, move);
+    // 手を実行して状態を進めて、再帰呼び出しして、ゲームを続けます。
+    return await _(state.doMove(move), move);
   })(new State(), null);
 
   // 結果を表示します。
