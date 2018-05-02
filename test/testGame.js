@@ -1,5 +1,5 @@
 import assert from 'assert';
-import {some} from 'folivora';
+import {some} from 'lajure';
 import {Direction, Move, Piece, Player, State, getCapturedPiece, getMoveDirections, getNextPlayer, getPromotedPiece, vacant, wall} from '../src/game';
 
 describe('test Direction', () => {
@@ -188,14 +188,14 @@ describe('test State', () => {
   });
 });
 
-let s = new State();
-console.log(s.toString());
-console.log();
+// let s = new State();
+// console.log(s.toString());
+// console.log();
 
-for (; !s.winner;) {
-  const moves = Array.from(s.getLegalMoves());
-  s = s.doMove(moves[Math.floor(Math.random() * moves.length)]);
+// for (; !s.winner;) {
+//   const moves = Array.from(s.getLegalMoves());
+//   s = s.doMove(moves[Math.floor(Math.random() * moves.length)]);
 
-  console.log(s.toString());
-  console.log();
-}
+//   console.log(s.toString());
+//   console.log();
+// }

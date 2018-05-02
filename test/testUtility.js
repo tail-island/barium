@@ -8,8 +8,8 @@ describe('test isEqualArray', () => {
   });
 
   it('not equal case', () => {
-    assert.ifError(isEqualArray([1, 2, 3], [1, 2]));
-    assert.ifError(isEqualArray([1, 2, 3], [1, 2, 4]));
+    assert.ok(!isEqualArray([1, 2, 3], [1, 2]));
+    assert.ok(!isEqualArray([1, 2, 3], [1, 2, 4]));
   });
 });
 

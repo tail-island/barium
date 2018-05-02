@@ -1,4 +1,4 @@
-import {apply, concat, every, filter, first, identity, keep, keepIndexed, map, mapcat, mapIndexed, range, some} from 'folivora';
+import {apply, concat, filter, keep, keepIndexed, map, mapcat, range, some} from 'lajure';
 import {fnv1a, isEqualArray} from './utility';
 
 // 方角。盤面は、番兵を配置した縦8×横7を、一次元に変換した形です。

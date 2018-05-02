@@ -1,6 +1,6 @@
-import {reduce, reduced} from 'folivora';
-import {PieceType, State, vacant, wall} from './game';
+import {reduce, reduced} from 'lajure';
 import {client as WebSocketClient} from 'websocket';
+import {PieceType, State, vacant, wall} from './game';
 
 // 状態を評価します。
 const evaluate = (() => {
@@ -90,7 +90,6 @@ export const getMove = (() => {
   (async function _(state) {
     // メッセージを取得します。
     const message = await new Promise(resolve => connection.once('message', resolve));
-    console.log(message)
 
     // 敵の手を実行して、盤面を進めます。
     const lastMove = JSON.parse(message.utf8Data).lastMove;  // 状態は自前で管理するので、lastMove以外は捨てちゃいます。
@@ -100,7 +99,6 @@ export const getMove = (() => {
     const nextMove = getMove(lastState);
     const nextState = lastState.doMove(nextMove);
 
-    console.log(JSON.stringify(nextMove))
     // メッセージを送信します。
     connection.sendUTF(JSON.stringify(nextMove));
 

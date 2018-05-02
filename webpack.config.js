@@ -12,7 +12,7 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: /(node_modules|..\/folivora)/,  // TODO: folivoraをパブリッシュする。
+        exclude: /node_modules/,
         query: {
           presets: [
             [
@@ -25,7 +25,7 @@ module.exports = {
               }
             ]
           ],
-          plugins: ['babel-plugin-folivora']
+          plugins: ['babel-plugin-lajure']
         }
       },
       {
@@ -44,7 +44,7 @@ module.exports = {
     })
   ],
   resolve: {
-    modules: ['node_modules', '../'],  // TODO: folivoraをパブリッシュする。
+    modules: ['node_modules'],
     alias: {
       window_load_createjs: path.join(__dirname, 'node_modules', 'createjs', 'builds', '1.0.0', 'createjs.min.js')
     }
