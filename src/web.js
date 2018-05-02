@@ -3,10 +3,12 @@ import 'babel-polyfill';
 import {State} from './game';
 import {UI} from './ui';
 
-const ui = new UI();
-
 (async () => {
+  // Chromeで画像の読み込みに時間がかかってしまう場合があったので、ダーティ・ハック……。
+  await new Promise(resolve => setTimeout(resolve, 100));
+
   const socket = new WebSocket('ws://localhost:8080/');
+  const ui = new UI();
 
   await (async function _(state) {
     const message = await new Promise(resolve => socket.addEventListener('message', resolve, {once: true}));

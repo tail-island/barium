@@ -11,22 +11,26 @@ module.exports = {
     rules: [
       {
         test: /\.js$/,
-        loader: 'babel-loader',
-        exclude: /node_modules/,
-        query: {
-          presets: [
-            [
-              'env',
-              {
-                'targets': {
-                  'ie': 11
-                },
-                'useBuiltIns': true
-              }
-            ]
-          ],
-          plugins: ['babel-plugin-lajure']
-        }
+        exclude: /ienode_modules/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                [
+                  'env',
+                  {
+                    'targets': {
+                      'ie': 11
+                    },
+                    'useBuiltIns': true
+                  }
+                ]
+              ],
+              plugins: ['babel-plugin-lajure']
+            }
+          }
+        ]
       },
       {
         test: /\.png$/,
