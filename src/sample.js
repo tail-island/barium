@@ -16,8 +16,8 @@ const evaluate = (() => {
   ]);
 
   return (state) => (reduce((acc, piece) => acc + (piece !== vacant && piece !== wall ? rule.get(piece.type) * (piece.owner === state.player ? 1 : -1) : 0), 0, state.board) +
-                     reduce((acc, piece) => acc + rule.get(piece.type), 0, state.capturedPieces) +
-                     reduce((acc, piece) => acc - rule.get(piece.type), 0, state.enemyCapturedPieces));
+                     reduce((acc, piece) => acc + rule.get(piece.type) *  1, 0, state.capturedPieces) +
+                     reduce((acc, piece) => acc + rule.get(piece.type) * -1, 0, state.enemyCapturedPieces));
 })();
 
 // 次の手を取得します。
@@ -37,21 +37,18 @@ export const getMove = (() => {
       return state.winner === state.player ? 100000 : -100000;
     }
 
-    // 合法手を取得します。
-    const legalMoves = Array.from(state.getLegalMoves());
-
-    // 指定した深さまで探索した、もしくは、合法手がない場合は、盤面を評価してスコアとします。
-    if (depth === 1 || legalMoves.length === 0) {  // 外側で余分に一回回しているので、depth === 0じゃなくて1にしました。
+    // 指定した深さまで探索した場合は、盤面を評価してスコアとします。
+    if (depth === 1) {  // 外側で余分に一回回しているので、depth === 0じゃなくて1にしました。
       return evaluate(state);
     }
 
     // そうでなければ、合法手を使って1手進めた盤面で自分自身を呼び出して、スコアを計算します。
     const score = reduce((acc, move) => {
       const score = -getScore(state.doMove(move), depth - 1, -beta, -acc);
-      const nextAcc = score > acc ? score : acc;  // TODO: スコアが同じ場合にランダムで入れ替えると、手に幅がでて良いかも。
+      const nextAcc = score > acc ? score : acc;
 
       return nextAcc >= beta ? reduced(nextAcc) : nextAcc;
-    }, alpha, legalMoves);
+    }, alpha, state.getLegalMoves());
 
     // 計算したスコアをメモしておきます。
     memos.set(hashcode, {state: state, depth: depth, alpha: alpha, beta: beta, score: score});
