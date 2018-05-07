@@ -1,7 +1,5 @@
 /node_modules/
 /npm-debug.log
-
-/dist/*
-!/dist/.gitkeep
+/dist
 
 .DS_Store
