@@ -7,6 +7,8 @@ import {UI} from './ui';
   // Chromeで画像の読み込みに時間がかかってしまう場合があったので、ダーティ・ハック……。
   await new Promise(resolve => setTimeout(resolve, 100));
 
+  document.body.style.cursor = 'wait';
+
   const socket = new WebSocket('ws://localhost:8080/');
   const ui = new UI();
 
@@ -21,7 +23,10 @@ import {UI} from './ui';
     }
 
     const legalMoves = Array.from(lastState.getLegalMoves());
+
+    document.body.style.cursor = 'auto';
     const move = await ui.getMove(legalMoves);
+    document.body.style.cursor = 'wait';
 
     const nextState = lastState.doMove(move);
     await ui.doMove(move);
@@ -30,4 +35,6 @@ import {UI} from './ui';
 
     return await _(nextState);
   })(new State());
+
+  document.body.style.cursor = 'auto';
 })();
