@@ -300,6 +300,17 @@ export class UI {
     // アニメーションの終了を待てるように、Promiseを返します。姑息なコードでごめんなさい……。
     return new Promise(resolve => setTimeout(resolve, 1000));
   }
+
+  drawMessage(message) {
+    const text = new createjs.Text(message, '48px serif', '#0000ff');
+
+    text.textAlign    = 'center';
+    text.textBaseline = 'middle';
+    text.x            = 320;
+    text.y            = 240;
+
+    stage.addChild(text);
+  }
 }
 
 createjs.Ticker.addEventListener('tick', () => {

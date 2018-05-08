@@ -2,9 +2,12 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './src/web.js',
+  entry: {
+    'web': './src/web.js',
+    'vs-sample': './src/vsSample.js'
+  },
   output: {
-    filename: 'bundle.js'
+    filename: '[name].bundle.js'
   },
   mode: 'development',
   module: {
